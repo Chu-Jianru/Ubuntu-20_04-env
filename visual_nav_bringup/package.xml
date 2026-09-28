@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>visual_nav_bringup</name>
+  <version>0.1.0</version>
+  <description>RGB-D visual mapping and navigation launch files for ROS Noetic on Ubuntu 20.04.</description>
+  <maintainer email="dev@localhost">visual-nav</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>realsense2_camera</exec_depend>
+  <exec_depend>rtabmap_launch</exec_depend>
+  <exec_depend>depthimage_to_laserscan</exec_depend>
+  <exec_depend>move_base</exec_depend>
+  <exec_depend>map_server</exec_depend>
+  <exec_depend>teb_local_planner</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>topic_tools</exec_depend>
+</package>

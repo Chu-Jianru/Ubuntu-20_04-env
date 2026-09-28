@@ -1,0 +1,15 @@
+<launch>
+  <!--
+    底盘需要已经订阅 /cmd_vel，并发布 /odom 以及 odom -> base_link。
+    没有轮式里程计、只靠视觉里程计时，把 realsense_rtabmap.launch 的
+    visual_odometry 留在 true，本文件仍要求 TF 里有 odom -> base_link。
+  -->
+  <node pkg="move_base" type="move_base" name="move_base" output="screen">
+    <rosparam file="$(find visual_nav_bringup)/config/navigation/move_base.yaml" command="load"/>
+    <rosparam file="$(find visual_nav_bringup)/config/navigation/teb_local_planner.yaml" command="load"/>
+    <rosparam file="$(find visual_nav_bringup)/config/navigation/global_costmap.yaml" command="load"/>
+    <rosparam file="$(find visual_nav_bringup)/config/navigation/local_costmap.yaml" command="load"/>
+    <rosparam file="$(find visual_nav_bringup)/config/navigation/costmap_common.yaml" command="load" ns="global_costmap"/>
+    <rosparam file="$(find visual_nav_bringup)/config/navigation/costmap_common.yaml" command="load" ns="local_costmap"/>
+  </node>
+</launch>

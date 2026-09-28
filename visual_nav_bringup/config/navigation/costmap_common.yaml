@@ -1,0 +1,5 @@
+# 先用一台大约 36 x 28 厘米的差速小车占位。上车前用尺子改 footprint。
+# 膨胀半径写在各自代价地图的 inflation_layer 里。
+footprint: [[-0.18, -0.14], [-0.18, 0.14], [0.18, 0.14], [0.18, -0.14]]
+footprint_padding: 0.02
+transform_tolerance: 0.8

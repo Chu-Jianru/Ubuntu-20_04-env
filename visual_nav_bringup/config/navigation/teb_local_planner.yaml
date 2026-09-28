@@ -1,0 +1,40 @@
+# 速度要按电机和减速比改。这里是室内小车的保守初值。
+TebLocalPlannerROS:
+  odom_topic: /odom
+  map_frame: map
+
+  max_vel_x: 0.30
+  max_vel_x_backwards: 0.10
+  max_vel_theta: 0.60
+  acc_lim_x: 0.25
+  acc_lim_theta: 0.50
+
+  xy_goal_tolerance: 0.15
+  yaw_goal_tolerance: 0.20
+  free_goal_vel: false
+  min_turning_radius: 0.0
+
+  footprint_model:
+    type: circular
+    radius: 0.20
+
+  min_obstacle_dist: 0.18
+  inflation_dist: 0.35
+  include_costmap_obstacles: true
+  costmap_obstacles_behind_robot_dist: 1.0
+  obstacle_poses_affected: 15
+
+  dt_ref: 0.3
+  dt_hysteresis: 0.1
+  max_samples: 400
+  global_plan_overwrite_orientation: true
+  allow_init_with_backwards_motion: false
+
+  weight_max_vel_x: 2
+  weight_max_vel_theta: 1
+  weight_acc_lim_x: 1
+  weight_acc_lim_theta: 1
+  weight_kinematics_nh: 1000
+  weight_kinematics_forward_drive: 20
+  weight_optimaltime: 1
+  weight_obstacle: 50

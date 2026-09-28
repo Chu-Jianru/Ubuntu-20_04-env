@@ -1,0 +1,15 @@
+# 复制到机器人的 ~/.bashrc 末尾，把地址改成 ip addr 里的局域网地址。
+# 127.0.0.1 只能本机使用，远程 RViz 连不上。
+#
+# 机器人：
+#   export ROS_MASTER_URI=http://192.168.1.20:11311
+#   export ROS_IP=192.168.1.20
+#
+# 笔记本（也要安装 ROS Noetic，并且能 ping 通机器人）：
+#   export ROS_MASTER_URI=http://192.168.1.20:11311
+#   export ROS_IP=192.168.1.30
+#
+# 改完后打开新终端。两边都不要再设置 ROS_HOSTNAME，除非这个主机名在两台机器上都能解析。
+
+export ROS_MASTER_URI=http://192.168.1.20:11311
+export ROS_IP=192.168.1.20

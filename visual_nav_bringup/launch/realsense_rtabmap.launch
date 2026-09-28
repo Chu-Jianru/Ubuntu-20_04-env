@@ -1,0 +1,84 @@
+<launch>
+  <!--
+    单台 RealSense D400 的建图启动文件。
+    当前 Noetic 软件源里的 realsense2_camera/rs_rtabmap.launch 仍引用
+    rtabmap_ros/launch/rtabmap.launch，并且默认要 T265 + D400 两台相机。
+    那份文件对不上 0.21 版 RTAB-Map。请用本文件。
+
+    只建图：
+      roslaunch visual_nav_bringup realsense_rtabmap.launch
+
+    有轮式里程计（底盘已经发布 /odom 和 odom -> base_link）：
+      roslaunch visual_nav_bringup realsense_rtabmap.launch visual_odometry:=false
+
+    用已有地图定位：
+      roslaunch visual_nav_bringup realsense_rtabmap.launch localization:=true delete_db:=false
+
+    D435i 打开 IMU：
+      roslaunch visual_nav_bringup realsense_rtabmap.launch enable_imu:=true unite_imu_method:=linear_interpolation
+  -->
+
+  <arg name="camera_name" default="camera"/>
+  <arg name="rviz" default="true"/>
+  <arg name="localization" default="false"/>
+  <arg name="delete_db" default="true"/>
+  <arg name="visual_odometry" default="true"/>
+  <arg name="enable_imu" default="false"/>
+  <arg name="unite_imu_method" default=""/>
+  <arg name="navigation" default="false"/>
+
+  <!-- 相机相对 base_link 的位置：x y z，单位米。qx qy qz qw 先按相机朝前、无旋转。 -->
+  <arg name="camera_x" default="0.10"/>
+  <arg name="camera_y" default="0.00"/>
+  <arg name="camera_z" default="0.20"/>
+
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="camera" value="$(arg camera_name)"/>
+    <arg name="align_depth" value="true"/>
+    <arg name="enable_sync" value="true"/>
+    <arg name="color_width" value="640"/>
+    <arg name="color_height" value="480"/>
+    <arg name="color_fps" value="30"/>
+    <arg name="depth_width" value="640"/>
+    <arg name="depth_height" value="480"/>
+    <arg name="depth_fps" value="30"/>
+    <arg name="enable_gyro" value="$(arg enable_imu)"/>
+    <arg name="enable_accel" value="$(arg enable_imu)"/>
+    <arg name="unite_imu_method" value="$(arg unite_imu_method)"/>
+    <arg name="initial_reset" value="false"/>
+  </include>
+
+  <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_camera"
+        args="$(arg camera_x) $(arg camera_y) $(arg camera_z) 0 0 0 1 base_link $(arg camera_name)_link"/>
+
+  <include file="$(find visual_nav_bringup)/launch/depth_to_scan.launch">
+    <arg name="camera_name" value="$(arg camera_name)"/>
+  </include>
+
+  <arg name="rtabmap_args" default="--Reg/Force3DoF true --Grid/FromDepth true --Grid/RayTracing true --Grid/3D false --Grid/CellSize 0.05 --Grid/RangeMax 4 --RGBD/LinearUpdate 0.1 --RGBD/AngularUpdate 0.1 --Vis/MinInliers 15"/>
+  <arg if="$(arg delete_db)" name="rtabmap_args_final" value="--delete_db_on_start $(arg rtabmap_args)"/>
+  <arg unless="$(arg delete_db)" name="rtabmap_args_final" value="$(arg rtabmap_args)"/>
+
+  <include file="$(find rtabmap_launch)/launch/rtabmap.launch">
+    <arg name="rgb_topic" value="/$(arg camera_name)/color/image_raw"/>
+    <arg name="depth_topic" value="/$(arg camera_name)/aligned_depth_to_color/image_raw"/>
+    <arg name="camera_info_topic" value="/$(arg camera_name)/color/camera_info"/>
+    <arg name="depth_camera_info_topic" value="/$(arg camera_name)/aligned_depth_to_color/camera_info"/>
+    <arg name="approx_sync" value="true"/>
+    <arg name="frame_id" value="base_link"/>
+    <arg name="visual_odometry" value="$(arg visual_odometry)"/>
+    <arg name="odom_topic" value="/odom"/>
+    <arg name="vo_frame_id" value="odom"/>
+    <arg name="rviz" value="$(arg rviz)"/>
+    <arg name="rtabmap_viz" value="false"/>
+    <arg name="localization" value="$(arg localization)"/>
+    <arg name="args" value="$(arg rtabmap_args_final)"/>
+    <arg name="database_path" value="$(env HOME)/.ros/rtabmap.db"/>
+  </include>
+
+  <!-- move_base 的静态层订阅 /map。RTAB-Map 把栅格发在 /rtabmap/grid_map。 -->
+  <node if="$(arg navigation)" pkg="topic_tools" type="relay" name="grid_map_relay"
+        args="/rtabmap/grid_map /map"/>
+
+  <include if="$(arg navigation)" file="$(find visual_nav_bringup)/launch/move_base.launch"/>
+</launch>
