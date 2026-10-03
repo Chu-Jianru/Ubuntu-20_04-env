@@ -125,7 +125,7 @@ bash scripts/setup-ubuntu2004-ros-noetic.sh --ubuntu-mirror tuna --with-marathon
 5. 安装 `ros-noetic-desktop-full`，以及建图、导航、RealSense、TurtleBot3 仿真需要的包。
 6. 初始化 `rosdep`。它会打印 `Skip end-of-life distro "noetic"`，这是在跳过过期索引，不表示 Noetic 没装上。
 7. 创建 `~/visual_ws`，把本仓库里的 `visual_nav_bringup` 剪切进去，再编译。剪切后指南仓库里不再保留这个目录。
-8. 在 `~/.bashrc` 里加入 Noetic 和 `~/visual_ws` 的环境。
+8. 在 `~/.bashrc` 里加入 Noetic 和 `~/visual_ws`。如果同时配置了比赛仓库，还会用 `--extend` 追加巡线和定位两个工作空间。
 
 不要执行系统提示的 `sudo apt install python3-roslaunch`。找不到 `roscore` 时，先在当前终端加载 ROS：
 
@@ -231,15 +231,14 @@ bash scripts/setup-marathongo.sh
 ~/glio_ws/src/glio_mapping/             用来修改和编译的副本
 ```
 
-进入比赛项目的终端时再加载对应工作空间，不要把它们写进 `~/.bashrc`，避免和 `~/visual_ws` 叠在一起：
+配置脚本会把下面两行追加到 `~/.bashrc` 末尾。`--extend` 表示叠加上去，不会盖掉前面的 Noetic 和 `~/visual_ws`：
 
 ```bash
-source ~/marathongo/tangent_arc_navigation/devel/setup.bash
+source ~/marathongo/tangent_arc_navigation/devel/setup.bash --extend
+source ~/glio_ws/devel/setup.bash --extend
 ```
 
-```bash
-source ~/glio_ws/devel/setup.bash
-```
+新开一个终端后这三个工作空间会一起生效。已经打开的终端执行 `source ~/.bashrc`。
 
 ## 3. 检查安装
 

@@ -102,10 +102,24 @@ fi
   set -u
 )
 
+append_once() {
+  local file="$1"
+  local line="$2"
+  touch "${file}"
+  if ! grep -Fqx "${line}" "${file}"; then
+    printf '\n%s\n' "${line}" >> "${file}"
+  fi
+}
+
+append_once "${HOME}/.bashrc" "source ${MARATHON_DIR}/tangent_arc_navigation/devel/setup.bash --extend"
+append_once "${HOME}/.bashrc" "source ${GLIO_WS}/devel/setup.bash --extend"
+
 echo
-echo "比赛仓库已配置。"
-echo "巡线工作空间：source ${MARATHON_DIR}/tangent_arc_navigation/devel/setup.bash"
-echo "定位工作空间：source ${GLIO_WS}/devel/setup.bash"
+echo "比赛仓库已配置。新终端会通过 ~/.bashrc 依次加载："
+echo "  /opt/ros/noetic"
+echo "  ${HOME}/visual_ws"
+echo "  ${MARATHON_DIR}/tangent_arc_navigation  (--extend)"
+echo "  ${GLIO_WS}  (--extend)"
 echo "marathontracking 和 vision_part 还没有编译。要改巡线代码，直接编辑："
 echo "  ${MARATHON_DIR}/tangent_arc_navigation"
 echo "  ${MARATHON_DIR}/marathontracking"
