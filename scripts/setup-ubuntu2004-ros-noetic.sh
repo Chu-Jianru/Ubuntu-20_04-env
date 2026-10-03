@@ -5,7 +5,7 @@ set -euo pipefail
 
 MIRROR="tuna"
 UBUNTU_MIRROR="off"
-WORKSPACE="${HOME}/catkin_ws"
+WORKSPACE="${HOME}/marathongo"
 
 usage() {
   cat <<'EOF'
@@ -15,7 +15,7 @@ usage() {
   --mirror tuna|ustc|official   ROS 软件源，默认 tuna（清华）
   --ubuntu-mirror tuna|aliyun|off
                                 是否把 Ubuntu 源换成国内镜像，默认 off
-  --workspace PATH              catkin 工作空间，默认 ~/catkin_ws
+  --workspace PATH              catkin 工作空间，默认 ~/marathongo
   -h, --help                    显示这段说明
 
 脚本只接受 Ubuntu 20.04。它会安装 ROS Noetic desktop-full、

@@ -117,7 +117,7 @@ bash scripts/setup-ubuntu2004-ros-noetic.sh
 3. 确认系统语言环境是 UTF-8。
 4. 安装 2030-06-01 才过期的 ROS 签名密钥。`http://packages.ros.org/ros.key` 那把已经在 2025-06-01 过期，不要用。
 5. 安装 `ros-noetic-desktop-full`，以及建图、导航、RealSense、TurtleBot3 仿真需要的包。
-6. 初始化 `rosdep`，创建 `~/catkin_ws`，并把 `visual_nav_bringup` 放进工作空间。
+6. 初始化 `rosdep`，创建 `~/marathongo`，并把 `visual_nav_bringup` 放进工作空间。
 7. 在 `~/.bashrc` 里加入 Noetic 和工作空间的环境。
 
 装完打开一个新终端。密钥要从 GitHub 下载。这台机器访问不了 GitHub 时，在能打开的电脑上下载 <https://raw.githubusercontent.com/ros/rosdistro/master/ros.key>，拷到本机后再手动完成下面的软件源步骤。
@@ -178,11 +178,11 @@ source /opt/ros/noetic/setup.bash
 sudo rosdep init
 rosdep update
 
-mkdir -p ~/catkin_ws/src
-cp -a visual_nav_bringup ~/catkin_ws/src/
-cd ~/catkin_ws
+mkdir -p ~/marathongo/src
+cp -a visual_nav_bringup ~/marathongo/src/
+cd ~/marathongo
 catkin_make
-echo "source ~/catkin_ws/devel/setup.bash" >> ~/.bashrc
+echo "source ~/marathongo/devel/setup.bash" >> ~/.bashrc
 source ~/.bashrc
 ```
 

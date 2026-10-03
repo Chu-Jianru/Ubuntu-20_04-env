@@ -56,7 +56,7 @@ for pkg in "${PACKAGES[@]}"; do
 done
 
 echo "工作空间"
-WS="${HOME}/catkin_ws"
+WS="${HOME}/marathongo"
 if [[ -f "${WS}/devel/setup.bash" ]]; then
   ok "${WS}"
 else
