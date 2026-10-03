@@ -77,6 +77,22 @@ sudo apt-get install -y \
   ros-noetic-pcl-ros \
   ros-noetic-tf2-ros
 
+# glio_mapping 的 CMakeLists 把 livox_ros_driver 写成了必选依赖，即使用速腾雷达也要先编过这个包。
+if [[ ! -f /usr/local/lib/liblivox_sdk_static.a && ! -f /usr/local/lib/liblivox_sdk.so ]]; then
+  echo "==> 编译 Livox-SDK"
+  LIVOX_SDK_DIR="${HOME}/Livox-SDK"
+  if [[ ! -d "${LIVOX_SDK_DIR}/.git" ]]; then
+    git clone https://github.com/Livox-SDK/Livox-SDK.git "${LIVOX_SDK_DIR}"
+  fi
+  cmake -S "${LIVOX_SDK_DIR}" -B "${LIVOX_SDK_DIR}/build"
+  cmake --build "${LIVOX_SDK_DIR}/build" -j"$(nproc)"
+  sudo cmake --install "${LIVOX_SDK_DIR}/build"
+fi
+
+if [[ ! -d "${GLIO_WS}/src/livox_ros_driver/.git" ]]; then
+  git clone https://github.com/Livox-SDK/livox_ros_driver.git "${GLIO_WS}/src/livox_ros_driver"
+fi
+
 (
   cd "${GLIO_WS}"
   set +u
