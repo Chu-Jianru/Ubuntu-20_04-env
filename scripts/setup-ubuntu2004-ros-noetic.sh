@@ -5,7 +5,8 @@ set -euo pipefail
 
 MIRROR="tuna"
 UBUNTU_MIRROR="off"
-WORKSPACE="${HOME}/marathongo"
+WORKSPACE="${HOME}/visual_ws"
+WITH_MARATHONGO=0
 
 usage() {
   cat <<'EOF'
@@ -15,11 +16,13 @@ usage() {
   --mirror tuna|ustc|official   ROS 软件源，默认 tuna（清华）
   --ubuntu-mirror tuna|aliyun|off
                                 是否把 Ubuntu 源换成国内镜像，默认 off
-  --workspace PATH              catkin 工作空间，默认 ~/marathongo
+  --workspace PATH              视觉导航工作空间，默认 ~/visual_ws
+  --with-marathongo             装完 ROS 后继续克隆并配置比赛仓库
   -h, --help                    显示这段说明
 
 脚本只接受 Ubuntu 20.04。它会安装 ROS Noetic desktop-full、
 TurtleBot3 仿真、RTAB-Map、RealSense 驱动和导航相关包。
+不加 --with-marathongo 时，不会克隆比赛项目。
 EOF
 }
 
@@ -36,6 +39,10 @@ while [[ $# -gt 0 ]]; do
     --workspace)
       WORKSPACE="${2:?缺少工作空间路径}"
       shift 2
+      ;;
+    --with-marathongo)
+      WITH_MARATHONGO=1
+      shift
       ;;
     -h|--help)
       usage
@@ -211,24 +218,43 @@ rosdep update 没有成功。国内网络访问 GitHub 时经常这样。
 EOF
 fi
 
-echo "==> 创建工作空间 ${WORKSPACE}"
-# shellcheck disable=SC1091
-source /opt/ros/noetic/setup.bash
+echo "==> 创建视觉导航工作空间 ${WORKSPACE}"
 mkdir -p "${WORKSPACE}/src"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-if [[ -d "${REPO_ROOT}/visual_nav_bringup" ]]; then
-  rm -rf "${WORKSPACE}/src/visual_nav_bringup"
-  cp -a "${REPO_ROOT}/visual_nav_bringup" "${WORKSPACE}/src/visual_nav_bringup"
+PACKAGE_DEST="${WORKSPACE}/src/visual_nav_bringup"
+if [[ -d "${PACKAGE_DEST}" ]]; then
+  echo "工作空间里已有 visual_nav_bringup，保留现有文件。"
+elif [[ -d "${REPO_ROOT}/visual_nav_bringup" ]]; then
+  mv "${REPO_ROOT}/visual_nav_bringup" "${PACKAGE_DEST}"
+else
+  echo "找不到 visual_nav_bringup。它应该在指南仓库里，或已经位于 ${PACKAGE_DEST}。" >&2
+  exit 1
 fi
+
+# ROS 的 setup.bash 会读取尚未赋值的 ROS_DISTRO。
+# set -u 会因此退出，所以只在加载和编译期间放开这个检查。
+set +u
+# shellcheck disable=SC1091
+source /opt/ros/noetic/setup.bash
 pushd "${WORKSPACE}" >/dev/null
 catkin_make
 popd >/dev/null
+set -u
 append_once "${HOME}/.bashrc" "source ${WORKSPACE}/devel/setup.bash"
 
 sudo systemctl enable --now ssh
 sudo systemctl enable --now chrony
 
+if [[ "${WITH_MARATHONGO}" -eq 1 ]]; then
+  bash "${REPO_ROOT}/scripts/setup-marathongo.sh"
+fi
+
 echo
-echo "安装完成。请打开一个新终端，然后运行："
+echo "ROS 安装完成。请打开一个新终端，然后运行："
 echo "  bash ${REPO_ROOT}/scripts/check-ros-env.sh"
 echo "  roscore"
+if [[ "${WITH_MARATHONGO}" -eq 0 ]]; then
+  echo
+  echo "还没有配置比赛仓库。需要时再执行："
+  echo "  bash ${REPO_ROOT}/scripts/setup-marathongo.sh"
+fi

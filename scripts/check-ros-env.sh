@@ -30,9 +30,15 @@ fi
 
 echo "ROS"
 if [[ -f /opt/ros/noetic/setup.bash ]]; then
+  set +u
   # shellcheck disable=SC1091
   source /opt/ros/noetic/setup.bash
-  ok "Noetic 已安装到 /opt/ros/noetic"
+  set -u
+  if [[ "${ROS_DISTRO:-}" == "noetic" ]]; then
+    ok "Noetic 已安装到 /opt/ros/noetic"
+  else
+    bad "已找到 /opt/ros/noetic，但 ROS_DISTRO=${ROS_DISTRO:-空}"
+  fi
 else
   bad "没有 /opt/ros/noetic/setup.bash"
 fi
@@ -55,12 +61,29 @@ for pkg in "${PACKAGES[@]}"; do
   fi
 done
 
-echo "工作空间"
-WS="${HOME}/marathongo"
-if [[ -f "${WS}/devel/setup.bash" ]]; then
+echo "视觉导航工作空间"
+WS="${HOME}/visual_ws"
+if [[ -f "${WS}/devel/setup.bash" && -d "${WS}/src/visual_nav_bringup" ]]; then
   ok "${WS}"
 else
-  bad "还没有 ${WS}/devel/setup.bash。先运行安装脚本，或在该目录执行 catkin_make"
+  bad "还没有 ${WS}。运行 scripts/setup-ubuntu2004-ros-noetic.sh"
+fi
+
+echo "比赛仓库（可选）"
+if [[ -d "${HOME}/marathongo/.git" ]]; then
+  ok "已克隆 ~/marathongo"
+  if [[ -f "${HOME}/marathongo/tangent_arc_navigation/devel/setup.bash" ]]; then
+    ok "tangent_arc_navigation 已编译"
+  else
+    note "tangent_arc_navigation 还没编译。运行 scripts/setup-marathongo.sh"
+  fi
+else
+  note "还没有 ~/marathongo。需要比赛项目时运行 scripts/setup-marathongo.sh"
+fi
+if [[ -f "${HOME}/glio_ws/devel/setup.bash" && -d "${HOME}/glio_ws/src/glio_mapping" ]]; then
+  ok "~/glio_ws"
+elif [[ -d "${HOME}/marathongo/.git" ]]; then
+  note "glio_ws 还没编译。运行 scripts/setup-marathongo.sh"
 fi
 
 echo "网络与远程登录"

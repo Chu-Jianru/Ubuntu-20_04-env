@@ -105,10 +105,16 @@ sudo systemctl enable --now chrony
 把本仓库放到这台电脑上之后，用普通用户执行：
 
 ```bash
-bash scripts/setup-ubuntu2004-ros-noetic.sh
+bash scripts/setup-ubuntu2004-ros-noetic.sh --ubuntu-mirror tuna
 ```
 
-默认使用清华 ROS 镜像。中科大镜像加 `--mirror ustc`，官方源加 `--mirror official`。希望脚本顺手更换 Ubuntu 源时加 `--ubuntu-mirror tuna` 或 `--ubuntu-mirror aliyun`。
+只装 ROS 和视觉导航。还要克隆并编译比赛仓库时，加上 `--with-marathongo`：
+
+```bash
+bash scripts/setup-ubuntu2004-ros-noetic.sh --ubuntu-mirror tuna --with-marathongo
+```
+
+中科大 ROS 镜像加 `--mirror ustc`，官方源加 `--mirror official`。Ubuntu 软件源可以换成 `--ubuntu-mirror aliyun`。
 
 脚本会做这些事：
 
@@ -117,10 +123,17 @@ bash scripts/setup-ubuntu2004-ros-noetic.sh
 3. 确认系统语言环境是 UTF-8。
 4. 安装 2030-06-01 才过期的 ROS 签名密钥。`http://packages.ros.org/ros.key` 那把已经在 2025-06-01 过期，不要用。
 5. 安装 `ros-noetic-desktop-full`，以及建图、导航、RealSense、TurtleBot3 仿真需要的包。
-6. 初始化 `rosdep`，创建 `~/marathongo`，并把 `visual_nav_bringup` 放进工作空间。
-7. 在 `~/.bashrc` 里加入 Noetic 和工作空间的环境。
+6. 初始化 `rosdep`。它会打印 `Skip end-of-life distro "noetic"`，这是在跳过过期索引，不表示 Noetic 没装上。
+7. 创建 `~/visual_ws`，把本仓库里的 `visual_nav_bringup` 剪切进去，再编译。剪切后指南仓库里不再保留这个目录。
+8. 在 `~/.bashrc` 里加入 Noetic 和 `~/visual_ws` 的环境。
 
-装完打开一个新终端。密钥要从 GitHub 下载。这台机器访问不了 GitHub 时，在能打开的电脑上下载 <https://raw.githubusercontent.com/ros/rosdistro/master/ros.key>，拷到本机后再手动完成下面的软件源步骤。
+不要执行系统提示的 `sudo apt install python3-roslaunch`。找不到 `roscore` 时，先在当前终端加载 ROS：
+
+```bash
+source /opt/ros/noetic/setup.bash
+```
+
+装完再打开一个新终端。密钥要从 GitHub 下载。这台机器访问不了 GitHub 时，在能打开的电脑上下载 <https://raw.githubusercontent.com/ros/rosdistro/master/ros.key>，拷到本机后再手动完成下面的软件源步骤。
 
 ### 想自己逐步执行时
 
@@ -178,11 +191,14 @@ source /opt/ros/noetic/setup.bash
 sudo rosdep init
 rosdep update
 
-mkdir -p ~/marathongo/src
-cp -a visual_nav_bringup ~/marathongo/src/
-cd ~/marathongo
+mkdir -p ~/visual_ws/src
+mv visual_nav_bringup ~/visual_ws/src/
+cd ~/visual_ws
+set +u
+source /opt/ros/noetic/setup.bash
 catkin_make
-echo "source ~/marathongo/devel/setup.bash" >> ~/.bashrc
+set -u
+echo "source ~/visual_ws/devel/setup.bash" >> ~/.bashrc
 source ~/.bashrc
 ```
 
@@ -192,6 +208,37 @@ source ~/.bashrc
 sudo pip3 install -U rosdepc
 sudo rosdepc init
 rosdepc update
+```
+
+## 2.1 可选：配置 Marathongo
+
+比赛项目不在这次 ROS 安装包里。需要时单独执行，或在上一条安装命令里加上 `--with-marathongo`。
+
+```bash
+bash scripts/setup-marathongo.sh
+```
+
+它会把 <https://github.com/landitbot/marathongo> 克隆到 `~/marathongo`，编译 `tangent_arc_navigation`，并把 `glio_mapping` 复制到 `~/glio_ws/src` 后编译。`marathontracking` 和 `vision_part` 保持原样，不自动编译。
+
+目录结果：
+
+```text
+~/Ubuntu-20_04-env/          安装指南。visual_nav_bringup 已被剪切走
+~/visual_ws/src/visual_nav_bringup/
+~/marathongo/tangent_arc_navigation/    工作空间，在这里改巡线代码
+~/marathongo/marathontracking/          工作空间，在这里改比赛版巡线
+~/marathongo/glio_mapping/              原文
+~/glio_ws/src/glio_mapping/             用来修改和编译的副本
+```
+
+进入比赛项目的终端时再加载对应工作空间，不要把它们写进 `~/.bashrc`，避免和 `~/visual_ws` 叠在一起：
+
+```bash
+source ~/marathongo/tangent_arc_navigation/devel/setup.bash
+```
+
+```bash
+source ~/glio_ws/devel/setup.bash
 ```
 
 ## 3. 检查安装
