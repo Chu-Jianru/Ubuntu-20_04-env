@@ -97,11 +97,6 @@ sudo apt-get install -y \
   git \
   build-essential \
   python3-pip \
-  python3-rosdep \
-  python3-rosinstall \
-  python3-rosinstall-generator \
-  python3-wstool \
-  python3-catkin-tools \
   openssh-server \
   chrony \
   v4l-utils
@@ -164,6 +159,11 @@ EOF
 echo "==> 安装 ROS Noetic 和视觉导航软件包"
 sudo apt-get update
 sudo apt-get install -y \
+  python3-rosdep \
+  python3-rosinstall \
+  python3-rosinstall-generator \
+  python3-wstool \
+  python3-catkin-tools \
   ros-noetic-desktop-full \
   ros-noetic-gmapping \
   ros-noetic-turtlebot3 \
