@@ -15,7 +15,7 @@ usage() {
 选项：
   --mirror tuna|ustc|official   ROS 软件源，默认 tuna（清华）
   --ubuntu-mirror tuna|aliyun|off
-                                是否把 Ubuntu 源换成国内镜像，默认 off
+                                是否更换 Ubuntu 软件源，默认 off
   --workspace PATH              视觉导航工作空间，默认 ~/visual_ws
   --with-marathongo             装完 ROS 后继续克隆并配置比赛仓库
   -h, --help                    显示这段说明
@@ -235,8 +235,8 @@ fi
 if ! rosdep update; then
   cat <<'EOF'
 
-rosdep update 没有成功。国内网络访问 GitHub 时经常这样。
-软件包本身已经装好，可以先继续。等需要从源码编译依赖时，再执行：
+rosdep update 没有成功。已安装的软件包可以继续使用。
+需要从源码解析依赖时，再执行：
 
   sudo pip3 install -U rosdepc
   sudo rosdepc init

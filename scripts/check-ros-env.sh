@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 检查这台机器是否已经具备视觉导航所需的 ROS Noetic 环境。
+# 检查视觉导航所需的 ROS Noetic 环境。
 set -u
 
 ok() { printf '  [通过] %s\n' "$1"; }

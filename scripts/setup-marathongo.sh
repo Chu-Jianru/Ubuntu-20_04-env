@@ -25,7 +25,7 @@ source_noetic() {
   set -u
 }
 
-# 直连 GitHub 在国内经常卡住或被拒绝。每个仓库先试官方地址，失败再走代理。
+# 每个仓库先克隆官方地址，失败后再使用代理。
 git_clone_urls() {
   local repo="$1"
   printf '%s\n' "${repo}" "https://gh-proxy.com/${repo}"

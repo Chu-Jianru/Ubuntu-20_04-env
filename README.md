@@ -1,24 +1,12 @@
-# Ubuntu 20.04 视觉导航配置指南
+# Ubuntu 20.04 视觉导航配置
 
-这份指南面向一台新装的 Ubuntu 20.04，目标是把系统配到可以做视觉导航：用深度相机建图，再让底盘按目标点移动。
+在 Ubuntu 20.04 上安装 ROS Noetic，用深度相机建图，再用 `move_base` 按目标点移动。
 
-对应的 ROS 版本是 **ROS 1 Noetic**。它只正式支持 Ubuntu 20.04。下面的安装源在 2026-09-28 仍可下载，软件包最后更新于 2025-05-29，之后不再有安全和缺陷修复。
+ROS Noetic 对应 Ubuntu 20.04。Noetic 软件包最后更新于 2025-05-29。22.04 对应 ROS 2 Humble，24.04 对应 ROS 2 Jazzy，导航栈是 Nav2，本仓库的命令不用于这两个版本。
 
-## 先决定要不要留在 20.04
+传感器为 RGB-D 相机（Intel RealSense D435 / D435i / D455）。
 
-系统刚装好、里面还没有数据时，可以先重装一个仍在维护期里的组合：
-
-| 系统 | ROS | 官方支持到 |
-| --- | --- | --- |
-| Ubuntu 20.04 | ROS 1 Noetic | 2025-05，已结束 |
-| Ubuntu 22.04 | ROS 2 Humble | 2027-05 |
-| Ubuntu 24.04 | ROS 2 Jazzy | 2029-05 |
-
-继续使用这台 20.04 完全可以开工。视觉建图用 RTAB-Map，导航用 `move_base`。若改去 22.04 或 24.04，对应的导航栈是 Nav2，本指南的命令不能直接照搬。
-
-硬件上优先用 **RGB-D 相机**（Intel RealSense D435 / D435i / D455）。单目相机没有真实尺度，不适合作为第一套导航传感器。
-
-## 配完以后数据怎么走
+## 数据流
 
 ```text
 RealSense 彩色图 + 对齐深度
@@ -58,7 +46,7 @@ sudo apt update
 sudo apt upgrade -y
 ```
 
-在国内时，Ubuntu 官方源往往很慢。可以换成清华源（会先备份原来的 `sources.list`）：
+将 Ubuntu 软件源换成清华源。执行前会备份 `sources.list`：
 
 ```bash
 sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
@@ -79,7 +67,7 @@ ip -4 addr
 hostname -I
 ```
 
-`127.0.0.1` 只属于这台机器自己。远程连接用网卡上的 `192.168.x.x`、`10.x.x.x` 或 `172.16.x.x`，一般挂在 `enp*`、`eth*` 或 `wlan*` 上。
+`127.0.0.1` 只用于本机。远程连接使用 `192.168.x.x`、`10.x.x.x` 或 `172.16.x.x`，接口名通常为 `enp*`、`eth*` 或 `wlan*`。
 
 打开 SSH，方便另一台电脑登录：
 
@@ -97,11 +85,11 @@ sudo apt install -y chrony
 sudo systemctl enable --now chrony
 ```
 
-磁盘至少留 20 GB。内存 8 GB 更合适，4 GB 能装，开 Gazebo 会很吃力。有 NVIDIA 独显并且准备以后跑视觉算法时，再执行 `ubuntu-drivers devices` 看推荐驱动，然后 `sudo ubuntu-drivers autoinstall`。核显和虚拟机先不要装 NVIDIA 驱动。
+磁盘至少留 20 GB。建议内存 8 GB。有 NVIDIA 独显时，用 `ubuntu-drivers devices` 查看驱动，再用 `sudo ubuntu-drivers autoinstall` 安装。核显和虚拟机不安装 NVIDIA 驱动。
 
 ## 2. 安装 ROS Noetic
 
-把本仓库放到这台电脑上之后，用普通用户执行：
+在仓库目录中用普通用户执行：
 
 ```bash
 bash scripts/setup-ubuntu2004-ros-noetic.sh --ubuntu-mirror tuna
@@ -126,15 +114,15 @@ bash scripts/setup-ubuntu2004-ros-noetic.sh --ubuntu-mirror tuna --with-marathon
 7. 创建 `~/visual_ws`，把本仓库里的 `visual_nav_bringup` 复制进去，再编译。工作空间里已经有这个包时保留现有文件，不覆盖。指南仓库里的原目录仍留着。
 8. 在 `~/.bashrc` 里加入 Noetic 和 `~/visual_ws`。如果同时配置了比赛仓库，还会用 `--extend` 追加巡线和定位两个工作空间。
 
-不要执行系统提示的 `sudo apt install python3-roslaunch`。找不到 `roscore` 时，先在当前终端加载 ROS：
+不安装 `python3-roslaunch`。当前终端找不到 `roscore` 时，先加载 ROS：
 
 ```bash
 source /opt/ros/noetic/setup.bash
 ```
 
-装完再打开一个新终端。密钥先从 GitHub 下载，失败时再试 `gh-proxy.com`。两个地址都不通时，在能打开的电脑上下载 <https://raw.githubusercontent.com/ros/rosdistro/master/ros.key>，拷到本机后再手动完成下面的软件源步骤。
+安装结束后新开一个终端。ROS 密钥先从 GitHub 下载，失败时再从 `gh-proxy.com` 下载。两处都失败时，手动下载 <https://raw.githubusercontent.com/ros/rosdistro/master/ros.key>，再执行下面的软件源步骤。
 
-### 想自己逐步执行时
+### 手动安装
 
 ```bash
 sudo apt install -y curl gnupg lsb-release ca-certificates software-properties-common
@@ -201,7 +189,7 @@ echo "source ~/visual_ws/devel/setup.bash" >> ~/.bashrc
 source ~/.bashrc
 ```
 
-`rosdep update` 访问 GitHub 失败时，软件包已经在，可以先往下做。以后要从源码编译再安装国内可用的 `rosdepc`：
+`rosdep update` 访问 GitHub 失败时，已安装的软件包仍可使用。需要从源码解析依赖时再安装 `rosdepc`：
 
 ```bash
 sudo pip3 install -U rosdepc
@@ -211,7 +199,7 @@ rosdepc update
 
 ## 2.1 可选：配置 Marathongo
 
-比赛项目不在这次 ROS 安装包里。需要时单独执行，或在上一条安装命令里加上 `--with-marathongo`。
+比赛仓库单独配置。也可在上一条安装命令后加上 `--with-marathongo`。
 
 ```bash
 bash scripts/setup-marathongo.sh
@@ -266,9 +254,9 @@ rosrun turtlesim turtle_teleop_key
 
 焦点放在第三个终端，方向键能让乌龟移动，说明 ROS 主节点、话题和键盘节点都通了。结束时在每个终端按 `Ctrl+C`。
 
-## 4. 先在仿真里跑通导航
+## 4. 仿真导航
 
-这一步用激光雷达仿真，目的是熟悉地图、初始位姿和目标点。它还不是视觉导航。当前软件源里没有 `cartographer_ros`，仿真 SLAM 用 gmapping。
+本节使用激光雷达仿真，检查地图、初始位姿和目标点。软件源中没有 `cartographer_ros`，仿真 SLAM 使用 gmapping。
 
 三个终端都要已经 `source` 过 Noetic。`TURTLEBOT3_MODEL` 已由安装脚本写成 `burger`。
 
@@ -356,7 +344,7 @@ rosrun camera_calibration cameracalibrator.py \
 
 ## 6. 视觉建图
 
-测量相机相对底盘中心的位置，改 `visual_nav_bringup/launch/realsense_rtabmap.launch` 里的 `camera_x`、`camera_y`、`camera_z`，单位是米。改完在工作空间里重新 `catkin_make`，或确认 `rospack find visual_nav_bringup` 指向的就是你改过的那份源码。
+按实测修改 `visual_nav_bringup/launch/realsense_rtabmap.launch` 中的 `camera_x`、`camera_y`、`camera_z`，单位为米。修改后在工作空间执行 `catkin_make`。`rospack find visual_nav_bringup` 应指向该工作空间中的源码。
 
 没有轮式里程计时，直接：
 
@@ -447,7 +435,7 @@ export ROS_IP=192.168.1.30
 
 笔记本上执行 `rostopic list` 能看到机器人的话题后，再开 `rviz`。
 
-如果开了 `ufw`，ROS 1 的随机端口会被挡住。实验机器可以先 `sudo ufw disable`。需要防火墙时，只放行实验室网段，而不是在公网暴露 11311。
+启用 `ufw` 时，ROS 1 的随机端口会被拦截。实验环境执行 `sudo ufw disable`。保留防火墙时，只放行实验网段，不在公网开放 11311。
 
 ## 9. 验收清单
 
@@ -480,8 +468,8 @@ export ROS_IP=192.168.1.30
 **RViz 报 Timed out waiting for transform。**  
 某一段 TF 没人发布。按 `map -> odom -> base_link -> camera_link` 逐段用 `rosrun tf tf_echo` 查。轮式里程计和 `visual_odometry:=true` 同时打开时，两段 `odom -> base_link` 会打架，只能留一个。
 
-**栅格里全是障碍，车不敢动。**  
-相机看到了地面或机身。抬高相机、减小 `scan_height`，或把 `min_obstacle_height` 提到 0.10 以上。
+**栅格中全是障碍，机器人不移动。**  
+相机看到地面或机身。抬高相机、减小 `scan_height`，或把 `min_obstacle_height` 调到 0.10 以上。
 
 **定位启动后地图是空的。**  
 `localization:=true` 时必须 `delete_db:=false`，并且 `~/.ros/rtabmap.db` 是上一次建好的库。
