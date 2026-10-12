@@ -63,15 +63,14 @@ sudo apt upgrade -y
 ```bash
 sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
 sudo sed -i \
-  -e 's@http://archive.ubuntu.com@https://mirrors.tuna.tsinghua.edu.cn@g' \
-  -e 's@http://security.ubuntu.com@https://mirrors.tuna.tsinghua.edu.cn@g' \
-  -e 's@https://archive.ubuntu.com@https://mirrors.tuna.tsinghua.edu.cn@g' \
-  -e 's@https://security.ubuntu.com@https://mirrors.tuna.tsinghua.edu.cn@g' \
+  -e 's@https\?://[A-Za-z0-9.-]*archive\.ubuntu\.com@https://mirrors.tuna.tsinghua.edu.cn@g' \
+  -e 's@https\?://security\.ubuntu\.com@https://mirrors.tuna.tsinghua.edu.cn@g' \
+  -e 's@https\?://ports\.ubuntu\.com@https://mirrors.tuna.tsinghua.edu.cn@g' \
   /etc/apt/sources.list
 sudo apt update
 ```
 
-阿里云把上面的地址换成 `https://mirrors.aliyun.com`。
+桌面安装镜像里的地址经常是 `us.archive.ubuntu.com` 或 `cn.archive.ubuntu.com`，不是 `archive.ubuntu.com`。上面的替换把这些国家镜像一起换掉。阿里云把地址换成 `https://mirrors.aliyun.com`。安装脚本的 `--ubuntu-mirror` 会在第一次 `apt update` 之前做同样的替换。
 
 看局域网地址用：
 
@@ -124,7 +123,7 @@ bash scripts/setup-ubuntu2004-ros-noetic.sh --ubuntu-mirror tuna --with-marathon
 4. 安装 2030-06-01 才过期的 ROS 签名密钥。`http://packages.ros.org/ros.key` 那把已经在 2025-06-01 过期，不要用。
 5. 安装 `ros-noetic-desktop-full`，以及建图、导航、RealSense、TurtleBot3 仿真需要的包。
 6. 初始化 `rosdep`。它会打印 `Skip end-of-life distro "noetic"`，这是在跳过过期索引，不表示 Noetic 没装上。
-7. 创建 `~/visual_ws`，把本仓库里的 `visual_nav_bringup` 剪切进去，再编译。剪切后指南仓库里不再保留这个目录。
+7. 创建 `~/visual_ws`，把本仓库里的 `visual_nav_bringup` 复制进去，再编译。工作空间里已经有这个包时保留现有文件，不覆盖。指南仓库里的原目录仍留着。
 8. 在 `~/.bashrc` 里加入 Noetic 和 `~/visual_ws`。如果同时配置了比赛仓库，还会用 `--extend` 追加巡线和定位两个工作空间。
 
 不要执行系统提示的 `sudo apt install python3-roslaunch`。找不到 `roscore` 时，先在当前终端加载 ROS：
@@ -133,7 +132,7 @@ bash scripts/setup-ubuntu2004-ros-noetic.sh --ubuntu-mirror tuna --with-marathon
 source /opt/ros/noetic/setup.bash
 ```
 
-装完再打开一个新终端。密钥要从 GitHub 下载。这台机器访问不了 GitHub 时，在能打开的电脑上下载 <https://raw.githubusercontent.com/ros/rosdistro/master/ros.key>，拷到本机后再手动完成下面的软件源步骤。
+装完再打开一个新终端。密钥先从 GitHub 下载，失败时再试 `gh-proxy.com`。两个地址都不通时，在能打开的电脑上下载 <https://raw.githubusercontent.com/ros/rosdistro/master/ros.key>，拷到本机后再手动完成下面的软件源步骤。
 
 ### 想自己逐步执行时
 
@@ -192,7 +191,7 @@ sudo rosdep init
 rosdep update
 
 mkdir -p ~/visual_ws/src
-mv visual_nav_bringup ~/visual_ws/src/
+cp -a visual_nav_bringup ~/visual_ws/src/
 cd ~/visual_ws
 set +u
 source /opt/ros/noetic/setup.bash
@@ -218,12 +217,12 @@ rosdepc update
 bash scripts/setup-marathongo.sh
 ```
 
-它会把 <https://github.com/landitbot/marathongo> 克隆到 `~/marathongo`，编译 `tangent_arc_navigation`，并把 `glio_mapping` 复制到 `~/glio_ws/src` 后编译。`marathontracking` 和 `vision_part` 保持原样，不自动编译。
+它会把 <https://github.com/landitbot/marathongo> 克隆到 `~/marathongo`，编译 `tangent_arc_navigation`，并把 `glio_mapping` 复制到 `~/glio_ws/src` 后编译。`marathontracking` 和 `vision_part` 保持原样，不自动编译。直连 GitHub 失败时会改用 `gh-proxy.com`，并且不下载仓库里的 `gif` 演示图。定位包编译前会补上消息生成依赖，避免第一次 `catkin_make` 找不到 `glio_mapping/Pose6D.h`。
 
 目录结果：
 
 ```text
-~/Ubuntu-20_04-env/          安装指南。visual_nav_bringup 已被剪切走
+~/Ubuntu-20_04-env/          安装指南，仍保留 visual_nav_bringup
 ~/visual_ws/src/visual_nav_bringup/
 ~/marathongo/tangent_arc_navigation/    工作空间，在这里改巡线代码
 ~/marathongo/marathontracking/          工作空间，在这里改比赛版巡线
@@ -465,6 +464,12 @@ export ROS_IP=192.168.1.30
 
 **`sudo apt update` 报 EXPKEYSIG 或没有公钥。**  
 正在使用过期的 `packages.ros.org/ros.key`。删掉 `/etc/apt/sources.list.d/ros-latest.list` 和旧密钥后，改用第 2 节里从 GitHub 下载的那把密钥。
+
+**克隆 GitHub 仓库超时或连接被拒绝。**  
+重新运行安装脚本。脚本会改用 `gh-proxy.com`，比赛仓库也不再下载 `gif` 目录。
+
+**编译 `glio_mapping` 时找不到 `Pose6D.h`。**  
+这是消息头还没生成就去编译源码。重新运行 `scripts/setup-marathongo.sh`，它会先写上这条依赖再编译。
 
 **`rosdep update` 超时。**  
 安装阶段可以忽略。需要时改用 `rosdepc`。

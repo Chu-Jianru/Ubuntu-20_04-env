@@ -92,6 +92,54 @@ case "${MIRROR}" in
     ;;
 esac
 
+use_ubuntu_mirror() {
+  local name="$1"
+  local url
+  case "${name}" in
+    tuna) url="https://mirrors.tuna.tsinghua.edu.cn" ;;
+    aliyun) url="https://mirrors.aliyun.com" ;;
+    *)
+      echo "不支持的 Ubuntu 镜像：${name}" >&2
+      return 1
+      ;;
+  esac
+  echo "==> 备份并更换 Ubuntu 软件源为 ${name}"
+  sudo cp /etc/apt/sources.list "/etc/apt/sources.list.bak.$(date +%Y%m%d%H%M%S)"
+  # 官方安装镜像经常写成 us.archive.ubuntu.com、cn.archive.ubuntu.com 或 ports.ubuntu.com。
+  # 只替换 archive.ubuntu.com 会漏掉这些主机名，随后 apt 仍走原来的慢源。
+  sudo sed -i \
+    -e "s@https\\?://[A-Za-z0-9.-]*archive\\.ubuntu\\.com@${url}@g" \
+    -e "s@https\\?://security\\.ubuntu\\.com@${url}@g" \
+    -e "s@https\\?://ports\\.ubuntu\\.com@${url}@g" \
+    -e "s@https\\?://mirrors\\.tuna\\.tsinghua\\.edu\\.cn@${url}@g" \
+    -e "s@https\\?://mirrors\\.aliyun\\.com@${url}@g" \
+    /etc/apt/sources.list
+}
+
+download_ros_key() {
+  local dest="$1"
+  local url
+  local urls=(
+    "https://raw.githubusercontent.com/ros/rosdistro/master/ros.key"
+    "https://gh-proxy.com/https://raw.githubusercontent.com/ros/rosdistro/master/ros.key"
+  )
+  for url in "${urls[@]}"; do
+    echo "==> 下载 ROS 签名密钥：${url}"
+    if curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 15 --max-time 60 \
+      "${url}" -o "${dest}"; then
+      return 0
+    fi
+    echo "这个地址没有下载成功，尝试下一个。"
+    rm -f "${dest}"
+  done
+  echo "ROS 密钥下载失败。可以在能打开网页的电脑上保存 ros.key，再复制到本机。" >&2
+  return 1
+}
+
+if [[ "${UBUNTU_MIRROR}" != "off" ]]; then
+  use_ubuntu_mirror "${UBUNTU_MIRROR}"
+fi
+
 echo "==> 安装基础工具并打开 Ubuntu 的 universe 仓库"
 sudo apt-get update
 sudo apt-get install -y \
@@ -119,31 +167,10 @@ if ! locale | grep -q 'LANG=.*UTF-8'; then
   export LANG=en_US.UTF-8
 fi
 
-if [[ "${UBUNTU_MIRROR}" != "off" ]]; then
-  case "${UBUNTU_MIRROR}" in
-    tuna) UBUNTU_URL="https://mirrors.tuna.tsinghua.edu.cn" ;;
-    aliyun) UBUNTU_URL="https://mirrors.aliyun.com" ;;
-    *)
-      echo "不支持的 Ubuntu 镜像：${UBUNTU_MIRROR}" >&2
-      exit 1
-      ;;
-  esac
-  echo "==> 备份并更换 Ubuntu 软件源为 ${UBUNTU_MIRROR}"
-  sudo cp /etc/apt/sources.list "/etc/apt/sources.list.bak.$(date +%Y%m%d%H%M%S)"
-  sudo sed -i \
-    -e "s@http://archive.ubuntu.com@${UBUNTU_URL}@g" \
-    -e "s@http://security.ubuntu.com@${UBUNTU_URL}@g" \
-    -e "s@https://archive.ubuntu.com@${UBUNTU_URL}@g" \
-    -e "s@https://security.ubuntu.com@${UBUNTU_URL}@g" \
-    /etc/apt/sources.list
-fi
-
 echo "==> 下载并核对 ROS 签名密钥"
 KEY_TMP="$(mktemp)"
 trap 'rm -f "${KEY_TMP}"' EXIT
-curl -fsSL --retry 3 --retry-delay 2 \
-  "https://raw.githubusercontent.com/ros/rosdistro/master/ros.key" \
-  -o "${KEY_TMP}"
+download_ros_key "${KEY_TMP}"
 
 if gpg --show-keys "${KEY_TMP}" | grep -q '\[expired'; then
   echo "下载到的 ROS 密钥已经过期。不要改用 packages.ros.org/ros.key，那把密钥在 2025-06-01 过期。" >&2
@@ -225,7 +252,7 @@ PACKAGE_DEST="${WORKSPACE}/src/visual_nav_bringup"
 if [[ -d "${PACKAGE_DEST}" ]]; then
   echo "工作空间里已有 visual_nav_bringup，保留现有文件。"
 elif [[ -d "${REPO_ROOT}/visual_nav_bringup" ]]; then
-  mv "${REPO_ROOT}/visual_nav_bringup" "${PACKAGE_DEST}"
+  cp -a "${REPO_ROOT}/visual_nav_bringup" "${PACKAGE_DEST}"
 else
   echo "找不到 visual_nav_bringup。它应该在指南仓库里，或已经位于 ${PACKAGE_DEST}。" >&2
   exit 1
